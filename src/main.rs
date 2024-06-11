@@ -1,96 +1,131 @@
+use std::env;
 use axum::{
+    extract::{Path, State},
     http::StatusCode,
-    response::Html,
     routing::{get, post},
     Json, Router,
-    extract::Path
 };
 use serde::{Deserialize, Serialize};
+use sqlx::{postgres::PgPoolOptions, PgPool};
 
 #[derive(Deserialize, Debug, Serialize)]
 struct NewDocument {
     user_id: i32,
+    title: String,
     content: String,
 }
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, sqlx::FromRow)]
 struct Document {
     id: i32,
     user_id: i32,
+    title: String,
     content: String,
     created_at: chrono::NaiveDateTime,
+    updated_at: chrono::NaiveDateTime,
     is_synced: bool,
     last_synced_at: Option<chrono::NaiveDateTime>,
 }
 
 #[tokio::main]
 async fn main() {
+    // DB
+    let db_connect_str_file = env::var("DATABASE_CONNECTION_STRING_FILE").expect("DATABASE_CONNECTION_STRING_FILE must be set");
+    let db_connection_str = std::fs::read_to_string(db_connect_str_file).expect("DATABASE_CONNECTION_STRING_FILE must be a valid file path");
+
+    let pool = PgPoolOptions::new()
+        .max_connections(5)
+        .acquire_timeout(std::time::Duration::from_secs(3))
+        .connect(&db_connection_str)
+        .await
+        .expect("Failed to connect to Postgres");
+
+    sqlx::migrate!("./migrations")
+        .run(&pool)
+        .await
+        .expect("Failed to migrate");
+
     // build our application with a route
     let app = Router::new()
-        .route("/", get(handler))
-        .route("/document", 
-        post(create_document)
-        .get(get_documents))
-        .route("/document/:id", get(get_document));
+        .route("/document", post(create_document).get(get_documents))
+        .route("/document/:id", get(get_document))
+        .with_state(pool);
 
     // run it
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
-        .await
-        .unwrap();
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     println!("listening on {}", listener.local_addr().unwrap());
     axum::serve(listener, app).await.unwrap();
 }
 
 async fn create_document(
+    State(pool): State<PgPool>,
     Json(payload): Json<NewDocument>,
-) -> Result<(StatusCode, Json<NewDocument>), StatusCode> {
+) -> Result<(StatusCode, Json<Document>), StatusCode> {
     // Handle the payload
-    println!("Received user: {:?}", payload);
+    println!("Received document: {:?}", payload);
+
+    // Insert the document into the database
+    let result: Document = sqlx::query_as(
+        r#"
+        INSERT INTO document (user_id, title, content)
+        VALUES ($1, $2, $3)
+        RETURNING id, user_id, title, content, created_at, updated_at, is_synced, last_synced_at
+        "#,
+    )
+    .bind(&payload.user_id)
+    .bind(&payload.title)
+    .bind(&payload.content)
+    .fetch_one(&pool)
+    .await
+    .map_err(|e| {
+        eprintln!("Failed to insert document: {:?}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    println!("Document inserted successfully: {:?}", result);
 
     // Respond with a status code
-    Ok((StatusCode::CREATED, Json(payload)))
+    Ok((StatusCode::CREATED, Json(result)))
 }
 
 async fn get_documents(
-) -> Result<(StatusCode, Json<Vec<Document>>), StatusCode> {    
-    let documents = vec![
-        Document {
-            id: 1,
-            user_id: 1,
-            content: "Hello, World!".to_string(),
-            created_at: chrono::Utc::now().naive_utc(),
-            is_synced: true,
-            last_synced_at: Some(chrono::Utc::now().naive_utc()),
-        },
-        Document {
-            id: 2,
-            user_id: 1,
-            content: "Hello, World!".to_string(),
-            created_at: chrono::Utc::now().naive_utc(),
-            is_synced: true,
-            last_synced_at: Some(chrono::Utc::now().naive_utc()),
-        },
-    ];
+    State(pool): State<PgPool>,
+) -> Result<(StatusCode, Json<Vec<Document>>), StatusCode> {
+    let documents: Vec<Document> = sqlx::query_as(
+        r#"
+        SELECT id, user_id, title, content, created_at, updated_at, is_synced, last_synced_at
+        FROM document
+        "#,
+    )
+    .fetch_all(&pool)
+    .await
+    .map_err(|e| {
+        eprintln!("Failed to get documents: {:?}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
     // Respond with a status code
     Ok((StatusCode::OK, Json(documents)))
 }
 
 async fn get_document(
+    State(pool): State<PgPool>,
     Path(id): Path<i32>,
-) -> Result<(StatusCode, Json<Document>), StatusCode> {    
-    let document = 
-        Document {
-            id: 1,
-            user_id: 1,
-            content: "Hello, World!".to_string(),
-            created_at: chrono::Utc::now().naive_utc(),
-            is_synced: true,
-            last_synced_at: Some(chrono::Utc::now().naive_utc()),
-        };
+) -> Result<(StatusCode, Json<Document>), StatusCode> {
+    let document: Document = sqlx::query_as(
+        r#"
+            SELECT id, user_id, title, content, created_at, updated_at, is_synced, last_synced_at
+            FROM document
+            WHERE id = $1
+            "#,
+    )
+    .bind(&id)
+    .fetch_one(&pool)
+    .await
+    .map_err(|e| {
+        eprintln!("Failed to get document: {:?}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     // Respond with a status code
     Ok((StatusCode::OK, Json(document)))
-}
-
-async fn handler() -> Html<&'static str> {
-    Html("<h1>Hello, World!</h1>")
 }

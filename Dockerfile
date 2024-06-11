@@ -14,6 +14,9 @@ FROM rust:${RUST_VERSION}-slim-bullseye AS build
 ARG APP_NAME
 WORKDIR /app
 
+COPY migrations /app/migrations
+
+
 # Build the application.
 # Leverage a cache mount to /usr/local/cargo/registry/
 # for downloaded dependencies and a cache mount to /app/target/ for 
@@ -28,6 +31,7 @@ RUN --mount=type=bind,source=src,target=src \
     --mount=type=cache,target=/usr/local/cargo/registry/ \
     <<EOF
 set -e
+
 cargo build --locked --release
 cp ./target/release/$APP_NAME /bin/server
 EOF
