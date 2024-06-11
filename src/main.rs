@@ -1,12 +1,12 @@
-use std::env;
 use axum::{
     extract::{Path, State},
     http::StatusCode,
     routing::{get, post},
     Json, Router,
 };
+use keystone_api::database;
 use serde::{Deserialize, Serialize};
-use sqlx::{postgres::PgPoolOptions, PgPool};
+use sqlx::PgPool;
 
 #[derive(Deserialize, Debug, Serialize)]
 struct NewDocument {
@@ -28,21 +28,7 @@ struct Document {
 
 #[tokio::main]
 async fn main() {
-    // DB
-    let db_connect_str_file = env::var("DATABASE_CONNECTION_STRING_FILE").expect("DATABASE_CONNECTION_STRING_FILE must be set");
-    let db_connection_str = std::fs::read_to_string(db_connect_str_file).expect("DATABASE_CONNECTION_STRING_FILE must be a valid file path");
-
-    let pool = PgPoolOptions::new()
-        .max_connections(5)
-        .acquire_timeout(std::time::Duration::from_secs(3))
-        .connect(&db_connection_str)
-        .await
-        .expect("Failed to connect to Postgres");
-
-    sqlx::migrate!("./migrations")
-        .run(&pool)
-        .await
-        .expect("Failed to migrate");
+    let pool = database::setup_database().await.expect("Failed to setup database");
 
     // build our application with a route
     let app = Router::new()
