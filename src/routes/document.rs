@@ -6,6 +6,8 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
+use crate::auth::Claims;
+
 #[derive(Deserialize, Debug, Serialize)]
 pub struct NewDocument {
     user_id: i32,
@@ -26,6 +28,7 @@ pub struct Document {
 
 pub async fn create_document(
     State(pool): State<PgPool>,
+    _claims: Claims,
     Json(payload): Json<NewDocument>,
 ) -> Result<(StatusCode, Json<Document>), StatusCode> {
     // Handle the payload
@@ -57,6 +60,7 @@ pub async fn create_document(
 
 pub async fn get_documents(
     State(pool): State<PgPool>,
+    _claims: Claims
 ) -> Result<(StatusCode, Json<Vec<Document>>), StatusCode> {
     let documents: Vec<Document> = sqlx::query_as(
         r#"
@@ -78,6 +82,7 @@ pub async fn get_documents(
 pub async fn get_document(
     State(pool): State<PgPool>,
     Path(id): Path<i32>,
+    _claims: Claims
 ) -> Result<(StatusCode, Json<Document>), StatusCode> {
     let document: Document = sqlx::query_as(
         r#"
