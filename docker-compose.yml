@@ -1,0 +1,41 @@
+services:
+  api:
+    build: 
+      context: .
+      target: final
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_CONNECTION_STRING_FILE: /run/secrets/db_connection_string
+    secrets:
+      - db_connection_string
+    depends_on:
+      db:
+        condition: service_healthy
+  db:
+    image: postgres:16.3
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: keystone
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    secrets:
+      - db_password
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+volumes:
+  db-data:
+
+secrets:
+  db_password:
+    file: db_password.txt
+  db_connection_string:
+    file: db_connection_string.txt
