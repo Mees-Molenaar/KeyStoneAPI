@@ -7,8 +7,10 @@ services:
       - "3000:3000"
     environment:
       DATABASE_CONNECTION_STRING_FILE: /run/secrets/db_connection_string
+      JWT_SECRET_FILE: /run/secrets/jwt_secret
     secrets:
       - db_connection_string
+      - jwt_secret
     depends_on:
       db:
         condition: service_healthy
@@ -39,3 +41,5 @@ secrets:
     file: db_password.txt
   db_connection_string:
     file: db_connection_string.txt
+  jwt_secret:
+    file: jwt_secret.txt
