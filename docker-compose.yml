@@ -1,7 +1,7 @@
 services:
   api:
     build: 
-      context: .
+      context: ./api
       target: final
     ports:
       - "3000:3000"
