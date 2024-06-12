@@ -1,7 +1,7 @@
 create table "document"
 (
     id serial primary key,
-    user_id int not null,
+    user_id int not null, -- Not a Foreign Key since Amazong Cognito will be used
     title varchar(255) not null,
     content text not null,
     created_at timestamp not null default now(),
