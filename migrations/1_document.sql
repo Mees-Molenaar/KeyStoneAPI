@@ -1,4 +1,4 @@
-create table "document"
+create table document
 (
     id serial primary key,
     user_id int not null, -- Not a Foreign Key since Amazong Cognito will be used

@@ -6,6 +6,8 @@ async fn main() {
         .await
         .expect("Failed to setup database");
 
+    database::create_user(&pool).await.expect("Failed to add user to database");
+
     let app = app::setup_app(pool).await;
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();

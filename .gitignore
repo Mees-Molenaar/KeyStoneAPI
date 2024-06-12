@@ -2,3 +2,4 @@
 db_connection_string.txt
 db_password.txt
 jwt_secret.txt
+user_password.txt

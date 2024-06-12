@@ -8,9 +8,12 @@ services:
     environment:
       DATABASE_CONNECTION_STRING_FILE: /run/secrets/db_connection_string
       JWT_SECRET_FILE: /run/secrets/jwt_secret
+      USERNAME: keystone
+      USER_PASSWORD_FILE: /run/secrets/user_password
     secrets:
       - db_connection_string
       - jwt_secret
+      - user_password
     depends_on:
       db:
         condition: service_healthy
@@ -43,3 +46,5 @@ secrets:
     file: db_connection_string.txt
   jwt_secret:
     file: jwt_secret.txt
+  user_password:
+    file: user_password.txt
