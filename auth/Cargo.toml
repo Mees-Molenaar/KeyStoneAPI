@@ -6,3 +6,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+axum = "0.7.5"
+axum-extra = {version="0.9", features=["typed-header"]}
+argon2 = "0.5.3"
+jsonwebtoken = "9"
+once_cell = "1.19"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sqlx = { version = "0.7", features = [ "runtime-tokio", "tls-rustls", "postgres", "chrono"] }
+tokio = {version = "1.38.0", features = ["full"]}
