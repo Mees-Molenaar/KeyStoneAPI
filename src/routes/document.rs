@@ -10,7 +10,6 @@ use crate::auth::Claims;
 
 #[derive(Deserialize, Debug, Serialize)]
 pub struct NewDocument {
-    user_id: i32,
     title: String,
     content: String,
 }
@@ -28,13 +27,11 @@ pub struct Document {
 
 pub async fn create_document(
     State(pool): State<PgPool>,
-    _claims: Claims,
+    claims: Claims,
     Json(payload): Json<NewDocument>,
 ) -> Result<(StatusCode, Json<Document>), StatusCode> {
-    // Handle the payload
     println!("Received document: {:?}", payload);
 
-    // Insert the document into the database
     let result: Document = sqlx::query_as(
         r#"
         INSERT INTO document (user_id, title, content)
@@ -42,7 +39,7 @@ pub async fn create_document(
         RETURNING id, user_id, title, content, created_at, updated_at, is_synced, last_synced_at
         "#,
     )
-    .bind(&payload.user_id)
+    .bind(&claims.sub.parse::<i32>().unwrap())
     .bind(&payload.title)
     .bind(&payload.content)
     .fetch_one(&pool)
@@ -54,20 +51,21 @@ pub async fn create_document(
 
     println!("Document inserted successfully: {:?}", result);
 
-    // Respond with a status code
     Ok((StatusCode::CREATED, Json(result)))
 }
 
 pub async fn get_documents(
     State(pool): State<PgPool>,
-    _claims: Claims
+    claims: Claims
 ) -> Result<(StatusCode, Json<Vec<Document>>), StatusCode> {
     let documents: Vec<Document> = sqlx::query_as(
         r#"
         SELECT id, user_id, title, content, created_at, updated_at, is_synced, last_synced_at
         FROM document
+        WHERE user_id = $1
         "#,
     )
+    .bind(claims.sub.parse::<i32>().unwrap())
     .fetch_all(&pool)
     .await
     .map_err(|e| {
@@ -75,23 +73,24 @@ pub async fn get_documents(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    // Respond with a status code
     Ok((StatusCode::OK, Json(documents)))
 }
 
 pub async fn get_document(
     State(pool): State<PgPool>,
     Path(id): Path<i32>,
-    _claims: Claims
+    claims: Claims
 ) -> Result<(StatusCode, Json<Document>), StatusCode> {
     let document: Document = sqlx::query_as(
         r#"
             SELECT id, user_id, title, content, created_at, updated_at, is_synced, last_synced_at
             FROM document
             WHERE id = $1
+            AND user_id = $2
             "#,
     )
     .bind(&id)
+    .bind(&claims.sub.parse::<i32>().unwrap())
     .fetch_one(&pool)
     .await
     .map_err(|e| {
@@ -99,6 +98,5 @@ pub async fn get_document(
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    // Respond with a status code
     Ok((StatusCode::OK, Json(document)))
 }
