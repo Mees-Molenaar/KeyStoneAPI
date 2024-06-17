@@ -21,7 +21,9 @@ pub struct Jwks {
 }
 
 pub async fn fetch_jwks(jwks_url: &str) -> Result<Jwks, reqwest::Error> {
-    reqwest::get(jwks_url).await?.json::<Jwks>().await
+    let client = reqwest::ClientBuilder::new().use_rustls_tls().build()?;
+    
+    client.get(jwks_url).send().await?.json::<Jwks>().await
 }
 
 pub async fn verify_jwt(token: &str, jwks: &Jwks) -> Result<Claims, jsonwebtoken::errors::Error> {
