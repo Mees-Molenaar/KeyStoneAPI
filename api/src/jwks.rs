@@ -9,6 +9,7 @@ use crate::auth::Claims;
 struct Jwk {
     kty: String,
     alg: String,
+    #[serde(rename = "use")]
     use_: String,
     kid: String,
     n: String,

@@ -16,7 +16,7 @@ pub struct NewDocument {
 #[derive(Deserialize, Serialize, Debug, sqlx::FromRow)]
 pub struct Document {
     id: i32,
-    user_id: i32,
+    user_id: String,
     title: String,
     content: String,
     created_at: chrono::NaiveDateTime,
@@ -39,7 +39,7 @@ pub async fn create_document(
         RETURNING id, user_id, title, content, created_at, updated_at, is_synced, last_synced_at
         "#,
     )
-    .bind(&claims.sub.parse::<i32>().unwrap())
+    .bind(&claims.sub)
     .bind(&payload.title)
     .bind(&payload.content)
     .fetch_one(&pool)
@@ -65,7 +65,7 @@ pub async fn get_documents(
         WHERE user_id = $1
         "#,
     )
-    .bind(claims.sub.parse::<i32>().unwrap())
+    .bind(claims.sub)
     .fetch_all(&pool)
     .await
     .map_err(|e| {
@@ -90,7 +90,7 @@ pub async fn get_document(
             "#,
     )
     .bind(&id)
-    .bind(&claims.sub.parse::<i32>().unwrap())
+    .bind(&claims.sub)
     .fetch_one(&pool)
     .await
     .map_err(|e| {
