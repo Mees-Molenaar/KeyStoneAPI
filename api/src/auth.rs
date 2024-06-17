@@ -65,13 +65,10 @@ where
             .extract::<TypedHeader<Authorization<Bearer>>>()
             .await
             .map_err(|_| AuthError::InvalidToken)?;
-        // Decode the user data
 
+        // TODO: Cache fetching JWKS
         let jwks_url = env::var("JWKS_ENDPOINT").expect("JWKS_ENDPOINT must be set");
         let jwks = fetch_jwks(&jwks_url).await.expect("Failed to fetch JWKS");
-
-        
-
         let claims = verify_jwt(&bearer.token(), &jwks).await.map_err(|_| AuthError::InvalidToken)?;
 
         Ok(claims)

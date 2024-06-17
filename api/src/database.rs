@@ -1,9 +1,5 @@
-use std::{env, fs};
+use std::env;
 
-use argon2::{
-    password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
-    Argon2,
-};
 use sqlx::{postgres::PgPoolOptions, PgPool};
 
 pub async fn setup_database() -> Result<PgPool, sqlx::Error> {
@@ -25,33 +21,4 @@ pub async fn setup_database() -> Result<PgPool, sqlx::Error> {
         .expect("Failed to migrate");
 
     Ok(pool)
-}
-
-pub async fn create_user(pool: &PgPool) -> Result<(), sqlx::Error> {
-    let username = env::var("USERNAME").expect("USERNAME must be set");
-    let user_password_file = env::var("USER_PASSWORD_FILE").expect("USER_PASSWORD_FILE must be set");
-    let user_password = fs::read_to_string(user_password_file).expect("Failed to read password file");
-
-    let salt = SaltString::generate(&mut OsRng);
-
-    let argon2 = Argon2::default();
-
-    let password_hash = argon2
-        .hash_password(user_password.as_bytes(), &salt)
-        .expect("Failed to hash password")
-        .to_string();
-
-    sqlx::query(
-        r#"
-        INSERT INTO users (username, password_hash)
-        VALUES ($1, $2)
-        ON CONFLICT DO NOTHING
-        "#,
-    )
-    .bind(username)
-    .bind(password_hash)
-    .execute(pool)
-    .await?;
-
-    Ok(())
 }
