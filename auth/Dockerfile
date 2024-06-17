@@ -16,6 +16,9 @@ WORKDIR /app
 
 COPY migrations /app/migrations
 
+# Install the necessary dependencies for the application.
+RUN apt-get update -y && \
+    apt-get install -y pkg-config libssl-dev
 
 # Build the application.
 # Leverage a cache mount to /usr/local/cargo/registry/

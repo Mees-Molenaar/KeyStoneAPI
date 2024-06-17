@@ -2,12 +2,11 @@ use argon2::{
     password_hash::{PasswordHash, PasswordVerifier},
     Argon2,
 };
-use axum::{extract::State, Json};
-use jsonwebtoken::{encode, Header};
+use axum::{extract::State, Extension, Json};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
-use crate::auth::{AuthError, Claims, KEYS};
+use crate::{auth::{AuthError, Claims}, rsa::{generate_jwt, RsaKeyPair}};
 
 #[derive(Debug, Serialize)]
 pub struct AuthBody {
@@ -39,6 +38,7 @@ pub struct User {
 
 pub async fn authorize(
     State(pool): State<PgPool>,
+    Extension(rsa_keypair): Extension<RsaKeyPair>,
     Json(payload): Json<AuthPayload>,
 ) -> Result<Json<AuthBody>, AuthError> {
     // Check if the user sent the credentials
@@ -73,8 +73,7 @@ pub async fn authorize(
         exp: 2000000000, // May 2033
     };
     // Create the authorization token
-    let token = encode(&Header::default(), &claims, &KEYS.encoding)
-        .map_err(|_| AuthError::TokenCreation)?;
+    let token = generate_jwt(&claims, &rsa_keypair.private_key);
 
     // Send the authorized token
     Ok(Json(AuthBody::new(token)))
