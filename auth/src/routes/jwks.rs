@@ -31,7 +31,7 @@ pub async fn get_jwks(
             e: URL_SAFE_NO_PAD.encode(rsa_keypair.public_key.e().to_bytes_be()),
             n: URL_SAFE_NO_PAD.encode(rsa_keypair.public_key.n().to_bytes_be()),
             use_: "sig".to_string(),
-            kid: "1".to_string(),
+            kid: rsa_keypair.kid.to_string(),
         }],
     }))
 }

@@ -73,7 +73,7 @@ pub async fn authorize(
         exp: 2000000000, // May 2033
     };
     // Create the authorization token
-    let token = generate_jwt(&claims, &rsa_keypair.private_key);
+    let token = generate_jwt(&claims, &rsa_keypair.private_key, &rsa_keypair.kid);
 
     // Send the authorized token
     Ok(Json(AuthBody::new(token)))
