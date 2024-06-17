@@ -10,6 +10,7 @@ services:
       JWT_SECRET_FILE: /run/secrets/jwt_secret
       USERNAME: keystone
       USER_PASSWORD_FILE: /run/secrets/user_password
+      JWKS_ENDPOINT: http://auth:3001/jwks
     secrets:
       - api_db_connection_string
       - jwt_secret

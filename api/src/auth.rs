@@ -1,5 +1,4 @@
-use std::fmt::Display;
-use std::fs;
+use std::{env, fmt::Display};
 
 use axum::{
     async_trait,
@@ -11,24 +10,11 @@ use axum_extra::{
     headers::{authorization::Bearer, Authorization},
     TypedHeader,
 };
-use jsonwebtoken::{decode, DecodingKey, EncodingKey, Validation};
-use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-pub struct Keys {
-    pub encoding: EncodingKey,
-    pub decoding: DecodingKey,
-}
+use crate::jwks::{fetch_jwks, verify_jwt};
 
-impl Keys {
-    fn new(secret: &[u8]) -> Self {
-        Self {
-            encoding: EncodingKey::from_secret(secret),
-            decoding: DecodingKey::from_secret(secret),
-        }
-    }
-}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
@@ -41,6 +27,7 @@ impl Display for Claims {
         write!(f, "Subject: {}", self.sub)
     }
 }
+
 
 #[derive(Debug)]
 pub enum AuthError {
@@ -79,15 +66,14 @@ where
             .await
             .map_err(|_| AuthError::InvalidToken)?;
         // Decode the user data
-        let token_data = decode::<Claims>(bearer.token(), &KEYS.decoding, &Validation::default())
-            .map_err(|_| AuthError::InvalidToken)?;
 
-        Ok(token_data.claims)
+        let jwks_url = env::var("JWKS_ENDPOINT").expect("JWKS_ENDPOINT must be set");
+        let jwks = fetch_jwks(&jwks_url).await.expect("Failed to fetch JWKS");
+
+        
+
+        let claims = verify_jwt(&bearer.token(), &jwks).await.map_err(|_| AuthError::InvalidToken)?;
+
+        Ok(claims)
     }
 }
-
-pub static KEYS: Lazy<Keys> = Lazy::new(|| {
-    let secret_file = std::env::var("JWT_SECRET_FILE").expect("JWT_SECRET_FILE must be set");
-    let secret = fs::read_to_string(secret_file).expect("Failed to read JWT secret file");
-    Keys::new(secret.as_bytes())
-});

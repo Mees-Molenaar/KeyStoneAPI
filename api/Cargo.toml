@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+argon2 = "0.5.3"
 axum = "0.7.5"
 axum-extra = {version="0.9", features=["typed-header"]}
 chrono = {version="0.4.38", features=["serde"]}
@@ -15,3 +16,4 @@ tokio = {version = "1.38.0", features = ["full"]}
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sqlx = { version = "0.7", features = [ "runtime-tokio", "tls-rustls", "postgres", "chrono"] }
+reqwest = { version = "0.12.4", features = ["json"]}

@@ -6,7 +6,7 @@ async fn main() {
         .await
         .expect("Failed to setup database");
 
-    database::create_user(&pool).await.expect("Failed to add user to database");
+    // database::create_user(&pool).await.expect("Failed to add user to database");
 
     let app = app::setup_app(pool).await;
 
