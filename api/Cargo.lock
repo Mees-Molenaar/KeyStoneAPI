@@ -897,7 +897,6 @@ dependencies = [
  "axum-extra",
  "chrono",
  "jsonwebtoken",
- "once_cell",
  "reqwest",
  "serde",
  "serde_json",
