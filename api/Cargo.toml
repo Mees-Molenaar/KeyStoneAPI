@@ -15,3 +15,6 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sqlx = { version = "0.7", features = [ "runtime-tokio", "tls-rustls", "postgres", "chrono"] }
 reqwest = { version = "0.12.4", features = ["json", "rustls-tls"]}
+
+utoipa-scalar = { version = "0.2.0-alpha.0", features = ["axum"] }
+utoipa = {version = "5.0.0-alpha.0", features = ["axum_extras", "chrono"]}
